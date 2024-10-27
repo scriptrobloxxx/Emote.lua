@@ -1,20 +1,17 @@
-------------------------------------------------------------------
-local FunSection = FunTab:CreateSection("Emotes")
-------------------------------------------------------------------
+local HttpService = game:GetService("HttpService")
 
-local http = game:GetService("HttpService")
+local function getEmoteData()
+    -- Charger les émotes
+    local success, emoteData = pcall(function()
+        print("[AFEM] - Pulling from YARHM website...")
+        return HttpService:JSONDecode(game:HttpGet("https://yarhm.goteamst.com/static/emotes.json"))
+    end)
 
--- Charger les émotes
-local success, emoteData = pcall(function()
-    print("[AFEM] - Pulling from YARHM website...")
-    return http:JSONDecode(game:HttpGet("https://yarhm.goteamst.com/static/emotes.json"))
-end)
-
-if not success then
-    print("[AFEM] - Getting from website failed. Using fallback...")
-    -- Correction ici : format JSON correct
-    emoteData = http:JSONDecode([[
-        [
+    if not success then
+        print("[AFEM] - Getting from website failed. Using fallback...")
+        -- Fallback data
+        emoteData = HttpService:JSONDecode([[
+            [
             { "id": 13694139364, "animationid": "http://www.roblox.com/asset/?id=13694096724", "name": "Man City Scorpion Kick (Slowmotion)" },
             { "id": 14353423348, "animationid": "http://www.roblox.com/asset/?id=14352343065", "name": "BabyQueen-BouncyTwirl" },
             { "id": 14353421343, "animationid": "http://www.roblox.com/asset/?id=14352340648", "name": "BabyQueen-FaceFrame" },
@@ -65,15 +62,19 @@ if not success then
             { "id": 4940602656, "animationid": "http://www.roblox.com/asset/?id=10714378156", "name": "JumpingWave" },
             { "id": 4212496830, "animationid": "http://www.roblox.com/asset/?id=10714358182", "name": "BackToTheFuture" },
             { "id": 5996031867, "animationid": "http://www.roblox.com/asset/?id=5996012312", "name": "Backflop" }
-        ]
-    ]])
+            ]
+        ]])
+    end
+
+    return emoteData
 end
 
 local currentAnimationTrack = nil
 local currentButtonName = nil
 
 -- Fonction pour créer les boutons
-local function createEmoteButtons()
+local function createEmoteButtons(FunTab)
+    local emoteData = getEmoteData()  -- Obtenir les données des émotes
     for _, emote in ipairs(emoteData) do
         local buttonName = emote.name
         local animationId = emote.animationid
@@ -85,13 +86,12 @@ local function createEmoteButtons()
                 if character then
                     local humanoid = character:FindFirstChildOfClass("Humanoid")
                     if humanoid then
-                        -- Si une animation est en cours et qu'on appuie sur un autre bouton, arrêter l'animation actuelle
+                        -- Gérer l'animation
                         if currentAnimationTrack and currentButtonName ~= buttonName then
                             currentAnimationTrack:Stop()
                             currentAnimationTrack = nil
                         end
 
-                        -- Si on appuie sur le même bouton, arrêter l'animation
                         if currentButtonName == buttonName and currentAnimationTrack then
                             currentAnimationTrack:Stop()
                             currentAnimationTrack = nil
@@ -99,7 +99,6 @@ local function createEmoteButtons()
                             return
                         end
 
-                        -- Jouer l'animation si elle n'est pas déjà en cours
                         if not currentAnimationTrack or currentAnimationTrack.Animation.AnimationId ~= animationId then
                             local animation = Instance.new("Animation")
                             animation.AnimationId = animationId
@@ -122,5 +121,4 @@ local function createEmoteButtons()
     end
 end
 
--- Appeler la fonction pour créer les boutons
-createEmoteButtons()
+return createEmoteButtons  -- Renvoie la fonction
